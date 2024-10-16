@@ -17,10 +17,10 @@ library(cowplot)
 library(ggpubr)
 
 # regression
-library(lme4) # mixed models
-library(lmerTest) # pvalues for factors in mixed models, estimating dfs...
-library(car) # to get vif
-library(MuMIn) # for r.squaredGLMM
+library(lme4)
+library(lmerTest) 
+library(car)
+library(MuMIn)
 
 # visualization of models
 library(sjPlot)
