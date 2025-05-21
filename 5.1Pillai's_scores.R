@@ -29,7 +29,7 @@ library(glmmTMB)
 #---------------------
 
 setwd("E:/ProgettoRivarolese/")
-data <- readRDS("dataFiltered.rds")
+data <- readRDS("dataNormalized.rds")
 
 library(lme4)
 library(multcomp)
@@ -37,197 +37,223 @@ library(multcomp)
 ##########################################################3
 # Pillai's score
 
-# schwa vs a
-vowel_data <- subset(data, phoneme %in% c("ə", "a"))
 
-# Ensure factors are properly coded
-vowel_data$phoneme <- factor(vowel_data$phoneme)
+data_stressed <- subset(data, Type == "Stressed")
 
-# Define the dependent variables (formants)
-dependent_vars <- cbind(vowel_data$F1, vowel_data$F2)
+# List of vowel phonemes you want to compare
+vowel_pairs <- list(
+  c("ə", "a"),
+  c("ə", "ɛ"),
+  c("ə", "i"),
+  c("ə", "o"),
+  c("ə", "u"),
+  c("ə", "y"),
+  c("a", "ɛ"),
+  c("a", "i"),
+  c("a", "o"),
+  c("a", "u"),
+  c("a", "y"),
+  c("ɛ", "i"),
+  c("ɛ", "o"),
+  c("ɛ", "u"),
+  c("ɛ", "y"),
+  c("i", "o"),
+  c("i", "u"),
+  c("i", "y"),
+  c("o", "u"),
+  c("o", "y"),
+  c("u", "y")
+)
 
-# Fit the MANOVA model
-manova_model <- manova(dependent_vars ~ phoneme, data = vowel_data)
+# Loop over each vowel pair to calculate the Pillai score for stressed vowels
+pillai_results_stressed <- data.frame(pair = character(0), pillai_score = numeric(0))
 
-# Print summary of the MANOVA model
-summary_manova <- summary(manova_model, test = "Pillai")
-print(summary_manova)
-
-# Extract and print the Pillai score
-pillai_score <- summary_manova$stats[1, "Pillai"]
-print(paste("Pillai Score:", pillai_score))
-
-# Perform additional diagnostics and visualize results if needed
-# Plot the distribution of F1 and F2 for each vowel
-mean_points <- vowel_data %>%
-  group_by(phoneme) %>%
-  summarize(mean_f1 = mean(f1_original_scale),
-            mean_f2 = mean(f2_original_scale))
-
-# Plot without legend and with labels
-plot <- ggplot(vowel_data, aes(y = f1_original_scale, x = f2_original_scale, color = phoneme)) +
-  geom_point(alpha = 0.6, size = 2) +  # Add black border to points
-  stat_ellipse(level = 0.50, aes(fill = phoneme), alpha = 0.2, geom = "polygon", color = "black") +  # Color ellipses by phoneme
-  geom_text(data = mean_points, aes(x = mean_f2, y = mean_f1, label = phoneme), 
-            size = 10, color = "black") +  # Add labels
-  theme_minimal() +
-  scale_y_reverse() + # Reverse the y-axis
-  scale_x_reverse() +
-  labs(x = "Normalized F2 Frequency (Hz)",
-       y = "Normalized F1 Frequency (Hz)") +
-  scale_color_manual(values = c("ə" = "blue", "a" = "grey")) +
-  scale_fill_manual(values = c("ə" = "blue", "a" = "grey")) +  # Set fill colors for ellipses
-  theme(legend.position = "none",  # Remove legend
-        panel.grid.major = element_blank(),  # Remove major gridlines
-        panel.grid.minor = element_blank(),  # Remove minor gridlines
-        axis.line = element_line(color = "black"),  # Add black border to axes
-        axis.ticks = element_line(color = "black"),  # Add black ticks to axes
-        axis.text = element_text(color = "black", size = 16),  # Change axis text color and size
-        plot.margin = margin(10, 10, 10, 10, "pt"),
-        axis.title.x = element_text(size = 20),
-        axis.title.y = element_text(size = 20))  # Adjust axis title sizes
-
-print(plot)
-
-
-###
-# schwa vs ɛ
-vowel_data <- subset(data, phoneme %in% c("ə", "ɛ"))
-
-# Ensure factors are properly coded
-vowel_data$phoneme <- factor(vowel_data$phoneme)
-
-# Define the dependent variables (formants)
-dependent_vars <- cbind(vowel_data$f1_original_scale, vowel_data$f2_original_scale)
-
-# Fit the MANOVA model
-manova_model <- manova(dependent_vars ~ phoneme, data = vowel_data)
-
-# Print summary of the MANOVA model
-summary_manova <- summary(manova_model, test = "Pillai")
-print(summary_manova)
-
-# Extract and print the Pillai score
-pillai_score <- summary_manova$stats[1, "Pillai"]
-print(paste("Pillai Score:", pillai_score))
-
-mean_points <- vowel_data %>%
-  group_by(phoneme) %>%
-  summarize(mean_f1 = mean(f1_original_scale),
-            mean_f2 = mean(f2_original_scale))
-
-# Perform additional diagnostics and visualize results if needed
-# Plot the distribution of F1 and F2 for each vowel
-p1 <- ggplot(vowel_data, aes(y = f1_original_scale, x = f2_original_scale, color = phoneme)) +
-  geom_point(alpha = 0.6, size = 2) +  # Add black border to points
-  stat_ellipse(level = 0.50, aes(fill = phoneme), alpha = 0.2, geom = "polygon", color = "black") +  # Color ellipses by phoneme
-  geom_text(data = mean_points, aes(x = mean_f2, y = mean_f1, label = phoneme), 
-            size = 10, color = "black") +  # Add labels
-  theme_minimal() +
-  scale_y_reverse() + # Reverse the y-axis
-  scale_x_reverse() +
-  labs(x = "Normalized F2 Frequency (Hz)",
-       y = "Normalized F1 Frequency (Hz)") +
-  scale_color_manual(values = c("ə" = "blue", "ɛ" = "orange")) +
-  scale_fill_manual(values = c("ə" = "blue", "ɛ" = "orange")) +  # Set fill colors for ellipses
-  theme(legend.position = "none",  # Remove legend
-        panel.grid.major = element_blank(),  # Remove major gridlines
-        panel.grid.minor = element_blank(),  # Remove minor gridlines
-        axis.line = element_line(color = "black"),  # Add black border to axes
-        axis.ticks = element_line(color = "black"),  # Add black ticks to axes
-        axis.text = element_text(color = "black", size = 16),  # Change axis text color and size
-        plot.margin = margin(10, 10, 10, 10, "pt"),
-        axis.title.x = element_text(size = 20),
-        axis.title.y = element_text(size = 20))  # Adjust axis title sizes
-
-print(p1)
-
-
-###################
-# per each speaker: schwa vs a
-calculate_pillai_scores <- function(data, phonemes) {
-  # Initialize an empty data frame to store results
-  result_df <- data.frame(Speaker = character(), "Pillai score" = numeric())
+for (pair in vowel_pairs) {
   
-  # Iterate through each participant
-  for (speaker_id in unique(data$speaker)) {
-    # Subset the data for the current participant and phonemes
-    participant_data <- filter(data, speaker == speaker_id & phoneme %in% phonemes)
-    
-    # Ensure factors are properly coded
-    participant_data$phoneme <- factor(participant_data$phoneme, levels = phonemes)
-    
-    # Define the dependent variables (formants)
-    dependent_vars <- cbind(participant_data$F1, participant_data$F2)
-    
-    # Fit the MANOVA model
-    manova_model <- manova(dependent_vars ~ phoneme, data = participant_data)
-    
-    # Extract and store the Pillai's score
-    pillai_score <- summary(manova_model, test = "Pillai")$stats[1, "Pillai"]
-    
-    # Append results to the data frame
-    result_df <- bind_rows(result_df, data.frame(Speaker = speaker_id, "Pillai score" = pillai_score))
-  }
+  # Subset the stressed data for the current vowel pair
+  vowel_data_stressed <- subset(data_stressed, phoneme %in% pair)
   
-  # Add a third column "Threshold" with the specified value
-  result_df$Threshold <- 0.09060937
+  # Ensure phoneme is a factor
+  vowel_data_stressed$phoneme <- factor(vowel_data_stressed$phoneme)
   
-  # Return the data frame
-  return(result_df)
+  # Define dependent variables (F1 and F2)
+  dependent_vars <- cbind(vowel_data_stressed$F1, vowel_data_stressed$F2)
+  
+  # Fit the MANOVA model
+  manova_model <- manova(dependent_vars ~ phoneme, data = vowel_data_stressed)
+  
+  # Extract the Pillai score
+  summary_manova <- summary(manova_model, test = "Pillai")
+  pillai_score <- summary_manova$stats[1, "Pillai"]
+  
+  # Store results
+  pillai_results_stressed <- rbind(pillai_results_stressed, data.frame(pair = paste(pair, collapse = "-"), pillai_score = pillai_score))
 }
 
-# Call the function to calculate Pillai's scores for each participant for "a" and "schwa"
-participant_pillai_scores <- calculate_pillai_scores(data, c("ə", "a"))
+# Print the results for stressed vowels
+print(pillai_results_stressed)
 
-# Print or use the obtained scores as needed
-print(participant_pillai_scores)
+## for each speaker
 
-# Write the results to a CSV file
-write.xlsx(participant_pillai_scores, "participant_pillai_scoresA_vs_Schwa.xlsx", row.names = FALSE)
+# List of vowel phonemes you want to compare
+vowel_pairs <- list(
+  c("ə", "a"),
+  c("ə", "ɛ"),
+  c("ə", "i"),
+  c("ə", "o"),
+  c("ə", "u"),
+  c("ə", "y"),
+  c("a", "ɛ"),
+  c("a", "i"),
+  c("a", "o"),
+  c("a", "u"),
+  c("a", "y"),
+  c("ɛ", "i"),
+  c("ɛ", "o"),
+  c("ɛ", "u"),
+  c("ɛ", "y"),
+  c("i", "o"),
+  c("i", "u"),
+  c("i", "y"),
+  c("o", "u"),
+  c("o", "y"),
+  c("u", "y")
+)
 
+# Get the list of speakers in the dataset
+speakers <- unique(data_stressed$speaker)
 
+# Initialize an empty data frame to store results
+pillai_results_per_speaker <- data.frame(speaker = character(0), pair = character(0), pillai_score = numeric(0))
 
-### 
-# schwa vs ɛ
-
-calculate_pillai_scores <- function(data, phonemes) {
-  # Initialize an empty data frame to store results
-  result_df <- data.frame(Speaker = character(), "Pillai score" = numeric())
+# Loop over each speaker
+for (speaker in speakers) {
   
-  # Iterate through each participant
-  for (speaker_id in unique(data$speaker)) {
-    # Subset the data for the current participant and phonemes
-    participant_data <- filter(data, speaker == speaker_id & phoneme %in% phonemes)
+  # Subset the stressed data for the current speaker
+  vowel_data_stressed_speaker <- subset(data_stressed, speaker == speaker)
+  
+  # Loop over each vowel pair to calculate the Pillai score
+  for (pair in vowel_pairs) {
     
-    # Ensure factors are properly coded
-    participant_data$phoneme <- factor(participant_data$phoneme, levels = phonemes)
+    # Subset the data for the current vowel pair
+    vowel_data_stressed <- subset(vowel_data_stressed_speaker, phoneme %in% pair)
     
-    # Define the dependent variables (formants)
-    dependent_vars <- cbind(participant_data$F1, participant_data$F2)
+    # Ensure phoneme is a factor
+    vowel_data_stressed$phoneme <- factor(vowel_data_stressed$phoneme)
+    
+    # Define dependent variables (F1 and F2)
+    dependent_vars <- cbind(vowel_data_stressed$F1, vowel_data_stressed$F2)
     
     # Fit the MANOVA model
-    manova_model <- manova(dependent_vars ~ phoneme, data = participant_data)
+    manova_model <- manova(dependent_vars ~ phoneme, data = vowel_data_stressed)
     
-    # Extract and store the Pillai's score
-    pillai_score <- summary(manova_model, test = "Pillai")$stats[1, "Pillai"]
+    # Extract the Pillai score
+    summary_manova <- summary(manova_model, test = "Pillai")
+    pillai_score <- summary_manova$stats[1, "Pillai"]
     
-    # Append results to the data frame
-    result_df <- bind_rows(result_df, data.frame(Speaker = speaker_id, "Pillai score" = pillai_score))
+    # Store results
+    pillai_results_per_speaker <- rbind(pillai_results_per_speaker, data.frame(speaker = speaker, pair = paste(pair, collapse = "-"), pillai_score = pillai_score))
   }
-  
-  # Add a third column "Threshold" with the specified value
-  result_df$Threshold <- 0.09060937
-  
-  # Return the data frame
-  return(result_df)
 }
 
-# Call the function to calculate Pillai's scores for each participant for "a" and "schwa"
-participant_pillai_scores <- calculate_pillai_scores(data, c("ə", "ɛ"))
+# Print the results for each speaker
+print(pillai_results_per_speaker)
 
-# Print or use the obtained scores as needed
-print(participant_pillai_scores)
+
+
+
+#############UNSTRESSED VOWELS
+
+data_unstressed <- subset(data, Type == "Unstressed")
+
+# List of vowel phonemes you want to compare
+vowel_pairs <- list(
+  c("ə", "a"),
+  c("ə", "i"),
+  c("ə", "o"),
+  c("ə", "u"),
+  c("ə", "y"),
+  c("a", "i"),
+  c("a", "o"),
+  c("a", "u"),
+  c("a", "y"),
+  c("i", "o"),
+  c("i", "u"),
+  c("i", "y"),
+  c("o", "u"),
+  c("o", "y"),
+  c("u", "y")
+)
+
+# Initialize an empty data frame to store results
+pillai_results_all_unstressed <- data.frame(pair = character(0), pillai_score = numeric(0))
+
+# Loop over each vowel pair to calculate the Pillai score for the entire dataset
+for (pair in vowel_pairs) {
+  
+  # Subset the data for the current vowel pair
+  vowel_data_unstressed <- subset(data_unstressed, phoneme %in% pair)
+  
+  # Ensure phoneme is a factor
+  vowel_data_unstressed$phoneme <- factor(vowel_data_unstressed$phoneme)
+  
+  # Define dependent variables (F1 and F2)
+  dependent_vars <- cbind(vowel_data_unstressed$F1, vowel_data_unstressed$F2)
+  
+  # Fit the MANOVA model
+  manova_model <- manova(dependent_vars ~ phoneme, data = vowel_data_unstressed)
+  
+  # Extract the Pillai score
+  summary_manova <- summary(manova_model, test = "Pillai")
+  pillai_score <- summary_manova$stats[1, "Pillai"]
+  
+  # Store results
+  pillai_results_all_unstressed <- rbind(pillai_results_all_unstressed, data.frame(pair = paste(pair, collapse = "-"), pillai_score = pillai_score))
+}
+
+# Print the results for all unstressed vowel pairs
+print(pillai_results_all_unstressed)
+
+
+# Initialize an empty data frame to store results for each speaker
+pillai_results_per_speaker_unstressed <- data.frame(speaker = character(0), pair = character(0), pillai_score = numeric(0))
+
+# Get the list of speakers in the dataset
+speakers <- unique(data_unstressed$speaker)
+
+# Loop over each speaker
+for (speaker in speakers) {
+  
+  # Subset the unstressed data for the current speaker
+  vowel_data_unstressed_speaker <- subset(data_unstressed, speaker == speaker)
+  
+  # Loop over each vowel pair to calculate the Pillai score for the current speaker
+  for (pair in vowel_pairs) {
+    
+    # Subset the data for the current vowel pair
+    vowel_data_unstressed <- subset(vowel_data_unstressed_speaker, phoneme %in% pair)
+    
+    # Ensure phoneme is a factor
+    vowel_data_unstressed$phoneme <- factor(vowel_data_unstressed$phoneme)
+    
+    # Define dependent variables (F1 and F2)
+    dependent_vars <- cbind(vowel_data_unstressed$F1, vowel_data_unstressed$F2)
+    
+    # Fit the MANOVA model
+    manova_model <- manova(dependent_vars ~ phoneme, data = vowel_data_unstressed)
+    
+    # Extract the Pillai score
+    summary_manova <- summary(manova_model, test = "Pillai")
+    pillai_score <- summary_manova$stats[1, "Pillai"]
+    
+    # Store results for the current speaker
+    pillai_results_per_speaker_unstressed <- rbind(pillai_results_per_speaker_unstressed, data.frame(speaker = speaker, pair = paste(pair, collapse = "-"), pillai_score = pillai_score))
+  }
+}
+
+# Print the results for each speaker
+print(pillai_results_per_speaker_unstressed)
+
 
 # Write the results to a CSV file
 write.xlsx(participant_pillai_scores, "participant_pillai_scoresɛ_vs_Schwa.xlsx", row.names = FALSE)
