@@ -10,6 +10,7 @@ library(writexl)
 library(dplyr)
 library(tidyr)
 library(tidyverse)
+library(brms)
 
 # plotting
 library(ggplot2)
@@ -17,10 +18,11 @@ library(cowplot)
 library(ggpubr)
 
 # regression
-library(lme4)
-library(lmerTest) 
-library(car)
-library(MuMIn)
+library(lme4) # mixed models
+library(lmerTest) # pvalues for factors in mixed models, estimating dfs...
+library(car) # to get vif
+library(MuMIn) # for r.squaredGLMM
+library(emmeans)
 
 # visualization of models
 library(sjPlot)
@@ -29,8 +31,8 @@ library(glmmTMB)
 library(xtable)
 #---------------------
 
-setwd("E:/ProgettoRivarolese/")
-data <- readRDS("dataFiltered.rds")
+setwd("D:/ProgettoRivarolese/")
+data <- readRDS("dataNormalized.rds")
 
 library(lme4)
 library(multcomp)
@@ -38,94 +40,84 @@ library(car)
 
 
 ##############
+#F1
+data_stressed <- data %>% filter(Type == "Stressed")
 
-phonemes_of_interest <- c("ə", "ɛ", "a")
-filtered_data <- subset(data, phoneme %in% phonemes_of_interest)
+model1 <- lmer(f1lobanov ~ phoneme + city + age + (1 | speaker) + (1|word), 
+               data = data_stressed)
 
-# Ensure phoneme is a factor and relevel to set schwa as the reference level
-filtered_data$phoneme <- factor(filtered_data$phoneme)
-filtered_data$phoneme <- relevel(filtered_data$phoneme, ref = "ə")
+model_summary <- summary(model1)
 
-# Fit the linear mixed-effects model
-lmer_model <- lmer(F1 ~ phoneme + (1 | speaker) + (1 | word), data = filtered_data)
-
-# Print the summary of the model
-summary_lmer <- summary(lmer_model)
-print(summary_lmer)
-
-# Perform ANOVA on the model
-anova_lmer <- anova(lmer_model)
-print(anova_lmer)
-
-# Post-hoc pairwise comparisons
-# Apply Bonferroni correction
-adjusted_comparisons <- summary(glht(lmer_model, linfct = mcp(phoneme = "Tukey")), test = adjusted("bonferroni"))
-print(adjusted_comparisons)
-
-#######################
-# F2
-
-phonemes_of_interest <- c("ə", "ɛ", "a")
-filtered_data <- subset(data, phoneme %in% phonemes_of_interest)
-
-# Ensure phoneme is a factor and relevel to set schwa as the reference level
-filtered_data$phoneme <- factor(filtered_data$phoneme)
-filtered_data$phoneme <- relevel(filtered_data$phoneme, ref = "ə")
-
-# Fit the linear mixed-effects model
-lmer_model <- lmer(F2 ~ phoneme + (1 | speaker) + (1 | word), data = filtered_data)
-
-# Print the summary of the model
-summary_lmer <- summary(lmer_model)
-print(summary_lmer)
-
-# Perform ANOVA on the model
-anova_lmer <- anova(lmer_model)
-print(anova_lmer)
-
-# Post-hoc pairwise comparisons
-# Apply Bonferroni correction
-adjusted_comparisons <- summary(glht(lmer_model, linfct = mcp(phoneme = "Tukey")), test = adjusted("bonferroni"))
-print(adjusted_comparisons)
+# pairwise comparisons
+# phonemes
+phoneme_comparisons <- emmeans(model1, ~ phoneme)
+pairwise_phoneme <- pairs(phoneme_comparisons, adjust = "bonferroni")
+summary(pairwise_phoneme)
 
 
-#############
-## for each speaker
-speakers <- unique(data$speaker)
+#F2
+data_stressed <- data %>% filter(Type == "Stressed")
 
-# Create empty lists to store results
-lmer_summaries <- list()
-anova_results <- list()
-posthoc_comparisons <- list()
+model2 <- lmer(f2lobanov ~ phoneme + city + age + (1 | speaker) + (1|word), 
+               data = data_stressed)
 
-# Loop through each speaker
-for (speaker_id in speakers) {
-  # Subset data for the current speaker
-  speaker_data <- subset(data, speaker == speaker_id)
-  
-  # Filter data for phonemes of interest
-  filtered_data <- subset(speaker_data, phoneme %in% phonemes_of_interest)
-  
-  # Ensure phoneme is a factor and relevel to set schwa as the reference level
-  filtered_data$phoneme <- factor(filtered_data$phoneme)
-  filtered_data$phoneme <- relevel(filtered_data$phoneme, ref = "ə")
-  
-  # Fit the linear mixed-effects model
-  lmer_model <- lmer(F2 ~ phoneme + (1 | word), data = filtered_data)
-  
-  # Save the summary of the model
-  lmer_summaries[[speaker_id]] <- summary(lmer_model)
-  
-  # Perform ANOVA on the model
-  anova_results[[speaker_id]] <- anova(lmer_model)
-  
-  # Post-hoc pairwise comparisons
-  # Apply Bonferroni correction
-  adjusted_comparisons <- summary(glht(lmer_model, linfct = mcp(phoneme = "Tukey")), test = adjusted("bonferroni"))
-  posthoc_comparisons[[speaker_id]] <- adjusted_comparisons
-}
+model_summary <- summary(model2)
+
+# pairwise comparisons
+# phone
+phoneme_comparisons <- emmeans(model2, ~ phoneme)
+pairwise_phoneme_2 <- pairs(phoneme_comparisons, adjust = "bonferroni")
+summary(pairwise_phoneme_2)
 
 
+# unstressed
+
+#F1
+data_unstressed <- data %>% filter(Type == "Unstressed")
+
+model1 <- lmer(f1lobanov ~ phoneme + city + age + (1 | speaker) + (1|word), 
+               data = data_unstressed)
+
+model_summary <- summary(model1)
+
+# pairwise comparisons
+# phone
+phoneme_comparisons <- emmeans(model1, ~ phoneme)
+pairwise_phoneme <- pairs(phoneme_comparisons, adjust = "bonferroni")
+summary(pairwise_phoneme)
+
+#F2
+data_unstressed <- data %>% filter(Type == "Unstressed")
+
+model2 <- lmer(f2lobanov ~ phoneme + city + age + (1 | speaker) + (1|word), 
+               data = data_unstressed)
+
+model_summary <- summary(model2)
+
+# pairwise comparisons
+# phone
+phoneme_comparisons <- emmeans(model2, ~ phoneme)
+pairwise_phoneme <- pairs(phoneme_comparisons, adjust = "bonferroni")
+summary(pairwise_phoneme)
+
+#interaction
+phonemecity_comparisons <- emmeans(model2, ~ phoneme | city)
+pairwise_phonemecity <- pairs(phonemecity_comparisons, adjust = "bonferroni")
+summary(pairwise_phonemecity)
+
+
+
+
+##########
+
+
+model <- lmer(duration ~ phoneme*Type + (1 | speaker) + (1 | word), data = duration_data)
+
+summary(model)
+
+comparisons <- emmeans(model, ~ Type|phoneme)
+pairwise_phoneme <- pairs(comparisons, adjust = "bonferroni")
+summary(pairwise_phoneme)
 
 
 
